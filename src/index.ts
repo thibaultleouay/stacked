@@ -143,10 +143,15 @@ const upCommand = new Command()
     }
   });
 
-await new Command()
+const cmd = new Command()
   .name("stacked")
   .version("1.0.0")
   .description("Create/update stacked PRs for jj commits")
   .command("push", pushCommand)
-  .command("up", upCommand)
-  .parse(Deno.args);
+  .command("up", upCommand);
+
+if (Deno.args.length === 0) {
+  cmd.showHelp();
+} else {
+  await cmd.parse(Deno.args);
+}
