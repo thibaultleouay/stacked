@@ -1,23 +1,19 @@
-interface PRListItem {
-  number: number;
-}
+import { parseJson, PRListItemSchema, runCommand } from "./utils.ts";
 
 export async function getNextAvailablePRNumber(): Promise<number> {
-  const command = new Deno.Command("gh", {
-    args: ["pr", "list", "-L", "1", "--state", "all", "--json", "number"],
-    stdout: "piped",
-    stderr: "piped",
-  });
-  const { code, stdout, stderr } = await command.output();
+  const result = await runCommand("gh", [
+    "pr",
+    "list",
+    "-L",
+    "1",
+    "--state",
+    "all",
+    "--json",
+    "number",
+  ], { errorPrefix: "Failed to get PR list" });
 
-  if (code !== 0) {
-    const stderrText = new TextDecoder().decode(stderr);
-    throw new Error(`Failed to get PR list: ${stderrText}`);
-  }
-
-  const output = new TextDecoder().decode(stdout);
-  const parsed = JSON.parse(output) as PRListItem[];
-  if (parsed.length === 0 || parsed[0].number === undefined) {
+  const parsed = parseJson(result.stdout, PRListItemSchema);
+  if (!parsed || parsed.length === 0) {
     return 1;
   }
 
@@ -25,8 +21,9 @@ export async function getNextAvailablePRNumber(): Promise<number> {
 }
 
 export async function getPRNumber(branch: string): Promise<number> {
-  const command = new Deno.Command("gh", {
-    args: [
+  const result = await runCommand(
+    "gh",
+    [
       "pr",
       "list",
       "-L",
@@ -38,18 +35,16 @@ export async function getPRNumber(branch: string): Promise<number> {
       "--head",
       branch,
     ],
-    stdout: "piped",
-    stderr: "piped",
-  });
-  const { code, stdout } = await command.output();
+    { throwOnError: false },
+  );
 
-  if (code !== 0) {
+  if (result.code !== 0) {
+    console.error(`Warning: Failed to get PR for branch ${branch}: ${result.stderr}`);
     return -1;
   }
 
-  const output = new TextDecoder().decode(stdout);
-  const parsed = JSON.parse(output) as PRListItem[];
-  if (parsed.length === 0 || parsed[0].number === undefined) {
+  const parsed = parseJson(result.stdout, PRListItemSchema);
+  if (!parsed || parsed.length === 0) {
     return -1;
   }
 
@@ -77,30 +72,22 @@ export async function createPR(
     args.push("--draft");
   }
 
-  const command = new Deno.Command("gh", {
-    args,
-    stdout: "piped",
-    stderr: "piped",
+  const result = await runCommand("gh", args, {
+    errorPrefix: "Failed to create PR",
   });
-  const { code, stdout, stderr } = await command.output();
 
-  if (code !== 0) {
-    const stderrText = new TextDecoder().decode(stderr);
-    throw new Error(`Failed to create PR: ${stderrText}`);
-  }
-
-  return new TextDecoder().decode(stdout).trim();
+  return result.stdout;
 }
 
 export async function updatePRBody(
   prNum: number,
   body: string,
 ): Promise<string> {
-  const command = new Deno.Command("gh", {
-    args: ["pr", "edit", String(prNum), "-b", body],
-    stdout: "piped",
-    stderr: "piped",
-  });
-  const { stdout } = await command.output();
-  return new TextDecoder().decode(stdout).trim();
+  const result = await runCommand(
+    "gh",
+    ["pr", "edit", String(prNum), "-b", body],
+    { errorPrefix: `Failed to update PR #${prNum}` },
+  );
+
+  return result.stdout;
 }

@@ -9,7 +9,8 @@
     "jsr:@std/internal@^1.0.12": "1.0.12",
     "jsr:@std/path@1": "1.1.4",
     "jsr:@std/text@~1.0.7": "1.0.16",
-    "npm:smol-toml@1.3.0": "1.3.0"
+    "npm:smol-toml@1.3.0": "1.3.0",
+    "npm:zod@4.3.5": "4.3.5"
   },
   "jsr": {
     "@cliffy/command@1.0.0-rc.8": {
@@ -59,13 +60,17 @@
   "npm": {
     "smol-toml@1.3.0": {
       "integrity": "sha512-tWpi2TsODPScmi48b/OQZGi2lgUmBCHy6SZrhi/FdnnHiU1GwebbCfuQuxsC3nHaLwtYeJGPrDZDIeodDOc4pA=="
+    },
+    "zod@4.3.5": {
+      "integrity": "sha512-k7Nwx6vuWx1IJ9Bjuf4Zt1PEllcwe7cls3VNzm4CQ1/hgtFUK2bRNG3rvnpPUhFjmqJKAKtjV576KnUkHocg/g=="
     }
   },
   "workspace": {
     "dependencies": [
       "jsr:@cliffy/command@1.0.0-rc.8",
       "jsr:@std/path@1",
-      "npm:smol-toml@1.3.0"
+      "npm:smol-toml@1.3.0",
+      "npm:zod@4.3.5"
     ]
   }
 }
