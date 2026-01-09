@@ -121,10 +121,8 @@ async function runUpCommand() {
   }
 }
 
-await new Command()
-  .name("stacked")
-  .version("1.0.0")
-  .description("Create/update stacked PRs for jj commits")
+const pushCommand = new Command()
+  .description("Push commits and create/update stacked PRs")
   .action(async () => {
     try {
       await runDefaultCommand();
@@ -132,8 +130,10 @@ await new Command()
       console.error("Error:", err instanceof Error ? err.message : err);
       Deno.exit(1);
     }
-  })
-  .command("up", "Fetch, rebase onto main, and abandon empty commits")
+  });
+
+const upCommand = new Command()
+  .description("Fetch, rebase onto main, and abandon empty commits")
   .action(async () => {
     try {
       await runUpCommand();
@@ -141,5 +141,12 @@ await new Command()
       console.error("Error:", err instanceof Error ? err.message : err);
       Deno.exit(1);
     }
-  })
+  });
+
+await new Command()
+  .name("stacked")
+  .version("1.0.0")
+  .description("Create/update stacked PRs for jj commits")
+  .command("push", pushCommand)
+  .command("up", upCommand)
   .parse(Deno.args);
