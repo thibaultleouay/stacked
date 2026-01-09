@@ -1,0 +1,153 @@
+#!/usr/bin/env -S deno run --allow-run --allow-read --allow-write --allow-env
+import yargs from "yargs";
+import { hideBin } from "yargs/helpers";
+import { loadConfig } from "./config.ts";
+import {
+  getStackChangeIDs,
+  getDescription,
+  getBranch,
+  createBranch,
+  gitPush,
+  gitFetch,
+  rebase,
+  log,
+  getEmptyChangeIDs,
+  abandon,
+} from "./jj.ts";
+import {
+  getNextAvailablePRNumber,
+  getPRNumber,
+  createPR,
+  updatePRBody,
+} from "./gh.ts";
+
+async function prompt(question: string): Promise<string> {
+  const buf = new Uint8Array(1024);
+  await Deno.stdout.write(new TextEncoder().encode(question));
+  const n = await Deno.stdin.read(buf);
+  if (n === null) {
+    return "";
+  }
+  return new TextDecoder().decode(buf.subarray(0, n)).trim();
+}
+
+async function runDefaultCommand() {
+  const config = await loadConfig();
+
+  const changeIDs = await getStackChangeIDs(config.mainBranch);
+  if (changeIDs.length === 0) {
+    console.log("No stacked commits found");
+    return;
+  }
+
+  const prStack: number[] = [];
+  const descriptions: string[] = [];
+  let lastBranch = "";
+
+  for (const changeID of changeIDs) {
+    const desc = await getDescription(changeID);
+    let branch = await getBranch(changeID);
+
+    if (!branch) {
+      const nextPRNum = await getNextAvailablePRNumber();
+      branch = await createBranch(changeID, config.branchPrefix, nextPRNum);
+    }
+
+    await gitPush(changeID);
+    console.log("Branch pushed to remote");
+
+    let prNum = await getPRNumber(branch);
+
+    if (prNum === -1) {
+      console.log(`No PR created for branch yet, creating: ${branch}`);
+      const baseBranch = lastBranch || config.mainBranch;
+      await createPR(branch, baseBranch, config.draft);
+      console.log("PR created");
+      prNum = await getPRNumber(branch);
+    }
+
+    prStack.push(prNum);
+    descriptions.push(desc);
+    lastBranch = branch;
+  }
+
+  for (let i = 0; i < prStack.length; i++) {
+    const prNum = prStack[i];
+    const desc = descriptions[i];
+
+    let prInfo = "";
+    if (prStack.length > 1) {
+      prInfo = "\n---";
+      for (let j = prStack.length - 1; j >= 0; j--) {
+        if (i === j) {
+          prInfo += `\n* **->** #${prStack[j]}`;
+        } else {
+          prInfo += `\n* #${prStack[j]}`;
+        }
+      }
+    }
+
+    const result = await updatePRBody(prNum, desc + "\n" + prInfo);
+    if (result) {
+      console.log("Successfully updated PR:", result);
+    }
+  }
+}
+
+async function runUpCommand() {
+  const config = await loadConfig();
+
+  console.log("Fetching from remote...");
+  await gitFetch();
+
+  console.log(`Rebasing onto ${config.mainBranch}...`);
+  await rebase(config.mainBranch);
+
+  const emptyChangeIDs = await getEmptyChangeIDs(config.mainBranch);
+
+  await log(`${config.mainBranch}-..@`);
+
+  for (const changeID of emptyChangeIDs) {
+    const shortID = changeID.slice(0, 5);
+    const answer = await prompt(`Abandoning change '${shortID}'? (y/n) `);
+    const normalized = answer.toLowerCase().trim();
+
+    if (normalized === "y" || normalized === "yes") {
+      await abandon(changeID);
+      console.log(`Abandoned ${shortID}`);
+    } else {
+      console.log("Abort");
+      return;
+    }
+  }
+}
+
+yargs(hideBin(Deno.args))
+  .command(
+    "$0",
+    "Create/update stacked PRs for jj commits",
+    () => {},
+    async () => {
+      try {
+        await runDefaultCommand();
+      } catch (err) {
+        console.error("Error:", err instanceof Error ? err.message : err);
+        Deno.exit(1);
+      }
+    }
+  )
+  .command(
+    "up",
+    "Fetch, rebase onto main, and abandon empty commits",
+    () => {},
+    async () => {
+      try {
+        await runUpCommand();
+      } catch (err) {
+        console.error("Error:", err instanceof Error ? err.message : err);
+        Deno.exit(1);
+      }
+    }
+  )
+  .help()
+  .parse();
