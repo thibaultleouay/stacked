@@ -3,8 +3,8 @@ import { Command } from "@cliffy/command";
 import { loadConfig } from "./config.ts";
 import {
   abandon,
-  createBranch,
-  getBranch,
+  createBookmark,
+  getBookmark,
   getDescription,
   getEmptyChangeIDs,
   getStackChangeIDs,
@@ -13,12 +13,7 @@ import {
   log,
   rebase,
 } from "./jj.ts";
-import {
-  createPR,
-  getNextAvailablePRNumber,
-  getPRNumber,
-  updatePRBody,
-} from "./gh.ts";
+import { createPR, getPRNumber, updatePRBody } from "./gh.ts";
 
 async function prompt(question: string): Promise<string> {
   const buf = new Uint8Array(1024);
@@ -44,16 +39,17 @@ async function runDefaultCommand(featureName?: string) {
   let lastBranch = "";
 
   console.log(`Running default command for feature: ${featureName}`);
-  for (const changeID of changeIDs) {
+  for (let i = 0; i < changeIDs.length; i++) {
+    const changeID = changeIDs[i];
+    const commitNumber = i + 1;
     const desc = await getDescription(changeID);
-    let branch = await getBranch(changeID);
+    let branch = await getBookmark(changeID);
 
     if (!branch) {
-      const nextPRNum = await getNextAvailablePRNumber();
-      branch = await createBranch(changeID, featureName!, nextPRNum);
+      branch = await createBookmark(changeID, `${featureName}/`, commitNumber);
     }
 
-    await gitPush(changeID);
+    await gitPush(branch);
     console.log("Branch pushed to remote");
 
     let prNum = await getPRNumber(branch);
@@ -61,7 +57,9 @@ async function runDefaultCommand(featureName?: string) {
     if (prNum === -1) {
       console.log(`No PR created for branch yet, creating: ${branch}`);
       const baseBranch = lastBranch || config.mainBranch;
-      await createPR(branch, baseBranch, config.draft);
+      const firstLine = desc.split("\n")[0];
+      const title = `${branch}: ${firstLine}`;
+      await createPR(branch, baseBranch, config.draft, title);
       console.log("PR created");
       prNum = await getPRNumber(branch);
     }
@@ -89,7 +87,7 @@ async function runDefaultCommand(featureName?: string) {
 
     const result = await updatePRBody(prNum, desc + "\n" + prInfo);
     if (result) {
-      console.log("Successfully updated PR:", result);
+      console.log("🔥 Successfully updated PR:", result);
     }
   }
 }

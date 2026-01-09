@@ -43,34 +43,38 @@ export async function getChangeIDs(revset: string): Promise<string[]> {
 }
 
 export async function getStackChangeIDs(mainBranch: string): Promise<string[]> {
-  return getChangeIDs(`${mainBranch}..@-`);
+  return getChangeIDs(`${mainBranch}..@`);
 }
 
 export async function getDescription(changeID: string): Promise<string> {
   return run(["jj", "log", "--no-graph", "-T", "description", "-r", changeID]);
 }
 
-export async function getBranch(changeID: string): Promise<string> {
-  const output = await run(["jj", "branch", "list", "-r", changeID]);
+export async function getBookmark(changeID: string): Promise<string> {
+  const output = await run(["jj", "bookmark", "list", "-r", changeID]);
   if (!output) {
     return "";
   }
   return output.split(":")[0];
 }
 
-export async function createBranch(
+export async function createBookmark(
   changeID: string,
   branchPrefix: string,
-  prNum: number
+  commitNumber: number,
 ): Promise<string> {
-  const branchName = `${branchPrefix}${prNum}`;
-  await run(["jj", "branch", "create", "-r", changeID, branchName]);
+  const branchName = `${branchPrefix}${commitNumber}`;
+  await run(["jj", "bookmark", "create", "-r", changeID, branchName]);
+  await run(["jj", "bookmark", "track", branchName]);
+
   return branchName;
 }
 
-export async function gitPush(changeID: string): Promise<void> {
+export async function gitPush(
+  bookmark: string,
+): Promise<void> {
   const command = new Deno.Command("jj", {
-    args: ["git", "push", "-r", changeID],
+    args: ["git", "push", "-b", bookmark],
     stdout: "piped",
     stderr: "piped",
   });
