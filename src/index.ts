@@ -30,7 +30,7 @@ async function prompt(question: string): Promise<string> {
   return new TextDecoder().decode(buf.subarray(0, n)).trim();
 }
 
-async function runDefaultCommand() {
+async function runDefaultCommand(featureName?: string) {
   const config = await loadConfig();
 
   const changeIDs = await getStackChangeIDs(config.mainBranch);
@@ -49,7 +49,7 @@ async function runDefaultCommand() {
 
     if (!branch) {
       const nextPRNum = await getNextAvailablePRNumber();
-      branch = await createBranch(changeID, config.branchPrefix, nextPRNum);
+      branch = await createBranch(changeID, featureName!, nextPRNum);
     }
 
     await gitPush(changeID);
@@ -123,9 +123,10 @@ async function runUpCommand() {
 
 const pushCommand = new Command()
   .description("Push commits and create/update stacked PRs")
-  .action(async () => {
+  .arguments("<feature:string>")
+  .action(async (_options: void, feature: string) => {
     try {
-      await runDefaultCommand();
+      await runDefaultCommand(feature);
     } catch (err) {
       console.error("Error:", err instanceof Error ? err.message : err);
       Deno.exit(1);
