@@ -1,6 +1,5 @@
 #!/usr/bin/env -S deno run --allow-run --allow-read --allow-write --allow-env
-import yargs from "yargs";
-import { hideBin } from "yargs/helpers";
+import { Command } from "@cliffy/command";
 import { loadConfig } from "./config.ts";
 import {
   getStackChangeIDs,
@@ -122,32 +121,25 @@ async function runUpCommand() {
   }
 }
 
-yargs(hideBin(Deno.args))
-  .command(
-    "$0",
-    "Create/update stacked PRs for jj commits",
-    () => {},
-    async () => {
-      try {
-        await runDefaultCommand();
-      } catch (err) {
-        console.error("Error:", err instanceof Error ? err.message : err);
-        Deno.exit(1);
-      }
+await new Command()
+  .name("stacked")
+  .version("1.0.0")
+  .description("Create/update stacked PRs for jj commits")
+  .action(async () => {
+    try {
+      await runDefaultCommand();
+    } catch (err) {
+      console.error("Error:", err instanceof Error ? err.message : err);
+      Deno.exit(1);
     }
-  )
-  .command(
-    "up",
-    "Fetch, rebase onto main, and abandon empty commits",
-    () => {},
-    async () => {
-      try {
-        await runUpCommand();
-      } catch (err) {
-        console.error("Error:", err instanceof Error ? err.message : err);
-        Deno.exit(1);
-      }
+  })
+  .command("up", "Fetch, rebase onto main, and abandon empty commits")
+  .action(async () => {
+    try {
+      await runUpCommand();
+    } catch (err) {
+      console.error("Error:", err instanceof Error ? err.message : err);
+      Deno.exit(1);
     }
-  )
-  .help()
-  .parse();
+  })
+  .parse(Deno.args);

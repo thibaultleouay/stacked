@@ -9,8 +9,7 @@
   },
   "imports": {
     "smol-toml": "npm:smol-toml@1.3.0",
-    "yargs": "npm:yargs@18.0.0",
-    "yargs/helpers": "npm:yargs@18.0.0/helpers",
+    "@cliffy/command": "jsr:@cliffy/command@1.0.0-rc.8",
     "@std/path": "jsr:@std/path@1"
   },
   "compilerOptions": {

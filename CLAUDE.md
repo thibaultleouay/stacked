@@ -4,52 +4,50 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**stacked** is a Deno-based CLI wrapper around Jujutsu (jj), a Git-compatible version control system. The tool provides a simple command-line interface that delegates all operations to the underlying `jj` command while providing a consistent namespace.
+**stacked** is a Deno CLI tool for managing stacked pull requests with Jujutsu (jj). It automates creating and updating GitHub PRs for each commit in a jj stack, maintaining proper base branch relationships and adding stack navigation links to PR descriptions.
+
+Based on https://github.com/lazywei/fj
 
 ## Development Commands
 
-### Running the Application
-- **Development mode with watch**: `deno task dev` - Auto-reloads on file changes
-- **Run directly**: `deno task start` - Executes with necessary permissions
-- **Compile to binary**: `deno task compile` - Creates standalone executable
-
-### Running Commands
-The application acts as a passthrough to `jj`:
 ```bash
-deno run --allow-run main.ts <jj-command> [arguments...]
-```
-
-### Testing
-Currently, no test suite is configured. When adding tests, use Deno's built-in test runner:
-```bash
-deno test
+deno task start              # Run the CLI
+deno task check              # Type check
+deno task check:type         # Type check with --unstable-tsgo
+deno test                    # Run tests (when added)
 ```
 
 ## Architecture
 
-### Core Components
+### Source Files (`src/`)
 
-**main.ts**
-- Entry point and only source file in the current implementation
-- Exports `runJJ()` function that spawns `jj` subprocess with inherited stdio
-- CLI argument parsing and delegation to Jujutsu
-- Requires `--allow-run` permission to execute external `jj` command
+- **index.ts** - CLI entry point using Cliffy Command. Defines two commands:
+  - Default command: Creates/updates stacked PRs for all commits between main and current revision
+  - `up` command: Fetches, rebases onto main, and prompts to abandon empty commits
 
-### Key Design Decisions
+- **jj.ts** - Jujutsu wrapper functions. Uses `Deno.Command` to shell out to `jj`. Key functions:
+  - `getStackChangeIDs(mainBranch)` - Gets change IDs for commits in the stack (`mainBranch..@-`)
+  - `getEmptyChangeIDs(mainBranch)` - Finds empty commits that can be abandoned
+  - Branch and git operations (push, fetch, rebase, abandon)
 
-1. **Subprocess delegation**: All commands are forwarded to `jj` via `Deno.Command`, preserving stdin/stdout/stderr inheritance for interactive operations
-2. **Minimal abstraction**: The wrapper adds no additional logic beyond basic CLI parsing and help text
-3. **Exit code passthrough**: Returns the exact exit code from `jj` for proper shell integration
+- **gh.ts** - GitHub CLI wrapper. Uses `gh` for PR operations:
+  - `getNextAvailablePRNumber()` - Queries highest PR number to generate branch names
+  - `createPR()` / `updatePRBody()` - PR creation and stack info updates
 
-## Development Environment
+- **config.ts** - Loads `.stacked.toml` from git root. Auto-creates with defaults on first run.
 
-- **Runtime**: Deno (JSR imports for @std/assert and @std/cli)
-- **Language**: TypeScript
-- **Editor configuration**: Zed settings configure Deno LSP for TS/JS/TSX files
-- **VCS**: Dual Git/.jj repository structure (Jujutsu co-located with Git)
+- **types.ts** - Config interface (`mainBranch`, `branchPrefix`, `draft`)
 
-## Dependencies
+### Configuration
 
-Standard library imports via JSR:
-- `@std/assert@1` - Testing utilities (imported but not yet used)
-- `@std/cli@1` - CLI utilities (imported but not yet used)
+The tool reads `.stacked.toml` from the repository root:
+```toml
+mainBranch = "main"
+branchPrefix = "username/pr-"
+draft = true
+```
+
+### External Dependencies
+
+- `jj` - Jujutsu CLI must be installed and repo must be a jj repository
+- `gh` - GitHub CLI must be installed and authenticated
