@@ -2,21 +2,21 @@
 import { Command } from "@cliffy/command";
 import { loadConfig } from "./config.ts";
 import {
-  getStackChangeIDs,
-  getDescription,
-  getBranch,
-  createBranch,
-  gitPush,
-  gitFetch,
-  rebase,
-  log,
-  getEmptyChangeIDs,
   abandon,
+  createBranch,
+  getBranch,
+  getDescription,
+  getEmptyChangeIDs,
+  getStackChangeIDs,
+  gitFetch,
+  gitPush,
+  log,
+  rebase,
 } from "./jj.ts";
 import {
+  createPR,
   getNextAvailablePRNumber,
   getPRNumber,
-  createPR,
   updatePRBody,
 } from "./gh.ts";
 
@@ -43,6 +43,7 @@ async function runDefaultCommand(featureName?: string) {
   const descriptions: string[] = [];
   let lastBranch = "";
 
+  console.log(`Running default command for feature: ${featureName}`);
   for (const changeID of changeIDs) {
     const desc = await getDescription(changeID);
     let branch = await getBranch(changeID);
