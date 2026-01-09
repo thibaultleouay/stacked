@@ -2,21 +2,21 @@
 import { Command } from "@cliffy/command";
 import { loadConfig } from "./config.ts";
 import {
-  getStackChangeIDs,
-  getDescription,
-  getBranch,
-  createBranch,
-  gitPush,
-  gitFetch,
-  rebase,
-  log,
-  getEmptyChangeIDs,
   abandon,
+  createBookmark,
+  getBookmark,
+  getDescription,
+  getEmptyChangeIDs,
+  getStackChangeIDs,
+  gitFetch,
+  gitPush,
+  log,
+  rebase,
 } from "./jj.ts";
 import {
+  createPR,
   getNextAvailablePRNumber,
   getPRNumber,
-  createPR,
   updatePRBody,
 } from "./gh.ts";
 
@@ -43,31 +43,34 @@ async function runDefaultCommand(featureName?: string) {
   const descriptions: string[] = [];
   let lastBranch = "";
 
-  for (const changeID of changeIDs) {
+  for (let i = 0; i < changeIDs.length; i++) {
+    const changeID = changeIDs[i];
+    const commitNumber = i + 1;
     const desc = await getDescription(changeID);
-    let branch = await getBranch(changeID);
+    let bookmark = await getBookmark(changeID);
 
-    if (!branch) {
-      const nextPRNum = await getNextAvailablePRNumber();
-      branch = await createBranch(changeID, featureName!, nextPRNum);
+    if (!bookmark) {
+      bookmark = await createBookmark(changeID, featureName!, commitNumber);
     }
 
-    await gitPush(changeID);
+    await gitPush(bookmark);
     console.log("Branch pushed to remote");
 
-    let prNum = await getPRNumber(branch);
+    let prNum = await getPRNumber(bookmark);
 
     if (prNum === -1) {
-      console.log(`No PR created for branch yet, creating: ${branch}`);
+      console.log(`No PR created for branch yet, creating: ${bookmark}`);
+      const firstLine = desc.split("\n")[0];
+      const title = `${bookmark}: ${firstLine}`;
       const baseBranch = lastBranch || config.mainBranch;
-      await createPR(branch, baseBranch, config.draft);
+      await createPR(bookmark, baseBranch, config.draft, title);
       console.log("PR created");
-      prNum = await getPRNumber(branch);
+      prNum = await getPRNumber(bookmark);
     }
 
     prStack.push(prNum);
     descriptions.push(desc);
-    lastBranch = branch;
+    lastBranch = bookmark;
   }
 
   for (let i = 0; i < prStack.length; i++) {
