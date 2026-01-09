@@ -59,9 +59,20 @@ export async function getPRNumber(branch: string): Promise<number> {
 export async function createPR(
   head: string,
   base: string,
-  draft: boolean
+  draft: boolean,
+  title: string,
 ): Promise<string> {
-  const args = ["pr", "create", "-H", head, "-B", base, "--fill-first"];
+  const args = [
+    "pr",
+    "create",
+    "-H",
+    head,
+    "-B",
+    base,
+    "--fill-first",
+    "--title",
+    title,
+  ];
   if (draft) {
     args.push("--draft");
   }
@@ -81,7 +92,10 @@ export async function createPR(
   return new TextDecoder().decode(stdout).trim();
 }
 
-export async function updatePRBody(prNum: number, body: string): Promise<string> {
+export async function updatePRBody(
+  prNum: number,
+  body: string,
+): Promise<string> {
   const command = new Deno.Command("gh", {
     args: ["pr", "edit", String(prNum), "-b", body],
     stdout: "piped",
