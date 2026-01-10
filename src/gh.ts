@@ -158,3 +158,22 @@ export async function isPRMerged(branch: string): Promise<boolean> {
 
   return parsed.state === "MERGED";
 }
+
+export async function isPROpen(branch: string): Promise<boolean> {
+  const result = await runCommand(
+    "gh",
+    ["pr", "view", branch, "--json", "state"],
+    { throwOnError: false },
+  );
+
+  if (result.code !== 0) {
+    return false;
+  }
+
+  const parsed = parseJson(result.stdout, PRStateSchema);
+  if (!parsed) {
+    return false;
+  }
+
+  return parsed.state === "OPEN";
+}

@@ -21,6 +21,7 @@ import {
   createPR,
   getPRNumber,
   isPRMerged,
+  isPROpen,
   mergePR,
   updatePRBase,
   updatePRBody,
@@ -185,9 +186,16 @@ async function runMergeCommand(targetBookmark: string) {
   const allRemainingBookmarks = await getAllStackBookmarks(config.mainBranch);
   if (allRemainingBookmarks.length > 0) {
     console.log("\nUpdating base branch for remaining PRs in the stack...");
-    const firstRemainingBookmark = allRemainingBookmarks[0];
-    await updatePRBase(firstRemainingBookmark, config.mainBranch);
-    console.log(`Updated ${firstRemainingBookmark} to target ${config.mainBranch}`);
+    // Find the first bookmark with an open PR (skip merged/closed PRs)
+    for (const remainingBookmark of allRemainingBookmarks) {
+      if (await isPROpen(remainingBookmark)) {
+        await updatePRBase(remainingBookmark, config.mainBranch);
+        console.log(`Updated ${remainingBookmark} to target ${config.mainBranch}`);
+        break;
+      } else {
+        console.log(`Skipping ${remainingBookmark} (PR is not open)`);
+      }
+    }
   }
 
   console.log("\nAll PRs merged successfully!");
