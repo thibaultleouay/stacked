@@ -15,19 +15,19 @@ import {
 } from "./jj.ts";
 import {
   createPR,
-  getNextAvailablePRNumber,
   getPRNumber,
   updatePRBody,
 } from "./gh.ts";
+import { decode, encode } from "./utils.ts";
 
 async function prompt(question: string): Promise<string> {
   const buf = new Uint8Array(1024);
-  await Deno.stdout.write(new TextEncoder().encode(question));
+  await Deno.stdout.write(encode(question));
   const n = await Deno.stdin.read(buf);
   if (n === null) {
     return "";
   }
-  return new TextDecoder().decode(buf.subarray(0, n)).trim();
+  return decode(buf.subarray(0, n), true);
 }
 
 async function runDefaultCommand(featureName?: string) {

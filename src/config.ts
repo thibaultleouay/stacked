@@ -1,18 +1,13 @@
 import { parse, stringify } from "smol-toml";
 import { join } from "@std/path";
-import { type Config, defaultConfig } from "./types.ts";
+import { type Config, ConfigSchema, defaultConfig } from "./types.ts";
+import { runCommand } from "./utils.ts";
 
 async function getGitRoot(): Promise<string> {
-  const command = new Deno.Command("git", {
-    args: ["rev-parse", "--show-toplevel"],
-    stdout: "piped",
-    stderr: "piped",
+  const result = await runCommand("git", ["rev-parse", "--show-toplevel"], {
+    errorPrefix: "Not in a git repository",
   });
-  const { code, stdout } = await command.output();
-  if (code !== 0) {
-    throw new Error("Not in a git repo");
-  }
-  return new TextDecoder().decode(stdout).trim();
+  return result.stdout;
 }
 
 export async function loadConfig(): Promise<Config> {
@@ -35,10 +30,19 @@ export async function loadConfig(): Promise<Config> {
   }
 
   const content = await Deno.readTextFile(configPath);
-  const parsed = parse(content) as Partial<Config>;
+  const parsed = parse(content);
 
-  return {
+  const result = ConfigSchema.safeParse({
     ...defaultConfig,
     ...parsed,
-  };
+  });
+
+  if (!result.success) {
+    const errors = result.error.issues
+      .map((issue) => `  - ${issue.path.join(".")}: ${issue.message}`)
+      .join("\n");
+    throw new Error(`Invalid config in ${configPath}:\n${errors}`);
+  }
+
+  return result.data;
 }

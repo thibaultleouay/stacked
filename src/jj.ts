@@ -1,31 +1,12 @@
-export async function run(args: string[]): Promise<string> {
-  const [cmd, ...cmdArgs] = args;
-  const command = new Deno.Command(cmd, {
-    args: cmdArgs,
-    stdout: "piped",
-    stderr: "piped",
-  });
-  const { code, stdout, stderr } = await command.output();
-  if (code !== 0) {
-    const stderrText = new TextDecoder().decode(stderr);
-    throw new Error(`Command failed: ${args.join(" ")}\n${stderrText}`);
-  }
-  return new TextDecoder().decode(stdout).trimEnd();
-}
+import { runCommand, runCommandInteractive } from "./utils.ts";
 
-export async function runWithStdout(args: string[]): Promise<void> {
-  const [cmd, ...cmdArgs] = args;
-  const command = new Deno.Command(cmd, {
-    args: cmdArgs,
-    stdout: "inherit",
-    stderr: "inherit",
-  });
-  await command.output();
+async function jj(args: string[]): Promise<string> {
+  const result = await runCommand("jj", args);
+  return result.stdout;
 }
 
 export async function getChangeIDs(revset: string): Promise<string[]> {
-  const output = await run([
-    "jj",
+  const output = await jj([
     "log",
     "--no-graph",
     "--reversed",
@@ -47,15 +28,21 @@ export async function getStackChangeIDs(mainBranch: string): Promise<string[]> {
 }
 
 export async function getDescription(changeID: string): Promise<string> {
-  return run(["jj", "log", "--no-graph", "-T", "description", "-r", changeID]);
+  return jj(["log", "--no-graph", "-T", "description", "-r", changeID]);
 }
 
 export async function getBookmark(changeID: string): Promise<string> {
-  const output = await run(["jj", "bookmark", "list", "-r", changeID]);
+  const output = await jj(["bookmark", "list", "-r", changeID]);
   if (!output) {
     return "";
   }
-  return output.split(":")[0];
+
+  const colonIndex = output.indexOf(":");
+  if (colonIndex === -1) {
+    return output.trim();
+  }
+
+  return output.slice(0, colonIndex);
 }
 
 export async function createBookmark(
@@ -64,38 +51,31 @@ export async function createBookmark(
   commitNumber: number,
 ): Promise<string> {
   const branchName = `${branchPrefix}${commitNumber}`;
-  await run(["jj", "bookmark", "create", "-r", changeID, branchName]);
-  await run(["jj", "bookmark", "track", branchName]);
+  await jj(["bookmark", "create", "-r", changeID, branchName]);
+  await jj(["bookmark", "track", branchName]);
   return branchName;
 }
 
 export async function gitPush(bookmark: string): Promise<void> {
-  const command = new Deno.Command("jj", {
-    args: ["git", "push", "-b", bookmark],
-    stdout: "piped",
-    stderr: "piped",
+  await runCommand("jj", ["git", "push", "-b", bookmark], {
+    errorPrefix: `Failed to push branch ${bookmark}`,
   });
-  const { code, stderr } = await command.output();
-  if (code !== 0) {
-    const stderrText = new TextDecoder().decode(stderr);
-    throw new Error(`Failed to push branch: ${stderrText}`);
-  }
 }
 
 export async function gitFetch(): Promise<void> {
-  await run(["jj", "git", "fetch"]);
+  await jj(["git", "fetch"]);
 }
 
 export async function rebase(mainBranch: string): Promise<void> {
-  await run(["jj", "rebase", "-d", mainBranch]);
+  await jj(["rebase", "-d", mainBranch]);
 }
 
 export async function abandon(changeID: string): Promise<void> {
-  await run(["jj", "abandon", "-r", changeID]);
+  await jj(["abandon", "-r", changeID]);
 }
 
 export async function log(revset: string): Promise<void> {
-  await runWithStdout(["jj", "log", "-r", revset]);
+  await runCommandInteractive("jj", ["log", "-r", revset]);
 }
 
 export async function getEmptyChangeIDs(mainBranch: string): Promise<string[]> {
