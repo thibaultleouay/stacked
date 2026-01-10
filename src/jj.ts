@@ -45,6 +45,23 @@ export async function getBookmark(changeID: string): Promise<string> {
   return output.slice(0, colonIndex);
 }
 
+export async function getStackBookmarks(mainBranch: string, targetBookmark: string): Promise<string[]> {
+  const changeIDs = await getStackChangeIDs(mainBranch);
+  const bookmarks: string[] = [];
+
+  for (const changeID of changeIDs) {
+    const bookmark = await getBookmark(changeID);
+    if (bookmark) {
+      bookmarks.push(bookmark);
+      if (bookmark === targetBookmark) {
+        break;
+      }
+    }
+  }
+
+  return bookmarks;
+}
+
 export async function createBookmark(
   changeID: string,
   branchPrefix: string,
@@ -68,6 +85,10 @@ export async function gitFetch(): Promise<void> {
 
 export async function rebase(mainBranch: string): Promise<void> {
   await jj(["rebase", "-d", mainBranch]);
+}
+
+export async function rebaseAll(mainBranch: string): Promise<void> {
+  await jj(["rebase", "-A", mainBranch]);
 }
 
 export async function abandon(changeID: string): Promise<void> {
