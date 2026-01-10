@@ -79,6 +79,10 @@ export async function gitPush(bookmark: string): Promise<void> {
   });
 }
 
+export async function gitPushAll(): Promise<void> {
+  await jj(["git", "push", "--all"]);
+}
+
 export async function gitFetch(): Promise<void> {
   await jj(["git", "fetch"]);
 }

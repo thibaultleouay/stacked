@@ -11,6 +11,7 @@ import {
   getStackChangeIDs,
   gitFetch,
   gitPush,
+  gitPushAll,
   log,
   rebase,
   rebaseAll,
@@ -19,6 +20,7 @@ import {
   createPR,
   getPRNumber,
   mergePR,
+  updatePRBase,
   updatePRBody,
 } from "./gh.ts";
 import { decode, encode } from "./utils.ts";
@@ -143,16 +145,35 @@ async function runMergeCommand(targetBookmark: string) {
 
   console.log(`Merging ${bookmarks.length} PR(s) to ${config.mainBranch}...`);
 
-  for (const bookmark of bookmarks) {
+  for (let i = 0; i < bookmarks.length; i++) {
+    const bookmark = bookmarks[i];
     console.log(`\nMerging PR for branch: ${bookmark}`);
     await mergePR(bookmark);
     console.log(`Merged ${bookmark}`);
+
+
 
     console.log("Fetching from remote...");
     await gitFetch();
 
     console.log(`Rebasing onto ${config.mainBranch}...`);
     await rebaseAll(config.mainBranch);
+
+    console.log("Pushing to remote...");
+    await gitPushAll();
+
+    // Update base branches for remaining PRs in the stack
+    const remainingBookmarks = bookmarks.slice(i + 1);
+    if (remainingBookmarks.length > 0) {
+      console.log("Updating base branches for remaining PRs...");
+      for (let j = 0; j < remainingBookmarks.length; j++) {
+        const remainingBookmark = remainingBookmarks[j];
+        const newBase = j === 0 ? config.mainBranch : remainingBookmarks[j - 1];
+        await updatePRBase(remainingBookmark, newBase);
+        console.log(`Updated ${remainingBookmark} to target ${newBase}`);
+      }
+    }
+
   }
 
   console.log("\nAll PRs merged successfully!");

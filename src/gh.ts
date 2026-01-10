@@ -99,3 +99,14 @@ export async function mergePR(branch: string): Promise<void> {
     { errorPrefix: `Failed to merge PR for branch ${branch}` },
   );
 }
+
+export async function updatePRBase(
+  branch: string,
+  newBase: string,
+): Promise<void> {
+  await runCommand(
+    "gh",
+    ["pr", "edit", branch, "--base", newBase],
+    { errorPrefix: `Failed to update base branch for PR ${branch}` },
+  );
+}
