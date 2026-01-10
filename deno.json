@@ -5,16 +5,10 @@
   "tasks": {
     "start": "deno run --allow-run --allow-read --allow-write --allow-env src/index.ts",
     "check": "deno check",
-    "check:type": "deno check --unstable-tsgo",
-    "compile": "deno compile --allow-run --allow-read --allow-write --allow-env --output build/stacked src/index.ts",
-    "compile:linux-x64": "deno compile --allow-run --allow-read --allow-write --allow-env --target x86_64-unknown-linux-gnu --output build/stacked-linux-x64 src/index.ts",
-    "compile:linux-arm64": "deno compile --allow-run --allow-read --allow-write --allow-env --target aarch64-unknown-linux-gnu --output build/stacked-linux-arm64 src/index.ts",
-    "compile:windows": "deno compile --allow-run --allow-read --allow-write --allow-env --target x86_64-pc-windows-msvc --output build/stacked-windows.exe src/index.ts",
-    "compile:macos-x64": "deno compile --allow-run --allow-read --allow-write --allow-env --target x86_64-apple-darwin --output build/stacked-macos-x64 src/index.ts",
-    "compile:macos-arm64": "deno compile --allow-run --allow-read --allow-write --allow-env --target aarch64-apple-darwin --output build/stacked-macos-arm64 src/index.ts"
+    "check:type": "deno check --unstable-tsgo"
   },
   "imports": {
-    "@logtape/logtape": "jsr:@logtape/logtape@^1.3.6",
+    "@logtape/logtape": "jsr:@logtape/logtape@1.3.6",
     "smol-toml": "npm:smol-toml@1.3.0",
     "@cliffy/command": "jsr:@cliffy/command@1.0.0-rc.8",
     "@std/path": "jsr:@std/path@1",

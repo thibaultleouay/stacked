@@ -1,0 +1,16 @@
+builds:
+  - id: "stacked"
+    builder: deno
+    binary: stacked
+    main: "src/index.ts"
+    targets:
+      - x86_64-unknown-linux-gnu
+      - aarch64-unknown-linux-gnu
+      - x86_64-pc-windows-msvc
+      - x86_64-apple-darwin
+      - aarch64-apple-darwin
+    flags:
+      - --allow-run
+      - --allow-read
+      - --allow-write
+      - --allow-env
