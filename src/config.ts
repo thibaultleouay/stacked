@@ -4,16 +4,16 @@ import { logger } from "./logger.ts";
 import { type Config, ConfigSchema, defaultConfig } from "./types.ts";
 import { runCommand } from "./utils.ts";
 
-async function getGitRoot(): Promise<string> {
-  const result = await runCommand("git", ["rev-parse", "--show-toplevel"], {
-    errorPrefix: "Not in a git repository",
+async function getJJRoot(): Promise<string> {
+  const result = await runCommand("jj", ["workspace", "root"], {
+    errorPrefix: "Not in a jj repository",
   });
   return result.stdout;
 }
 
 export async function loadConfig(): Promise<Config> {
-  const gitRoot = await getGitRoot();
-  const configPath = join(gitRoot, ".stacked.toml");
+  const jjRoot = await getJJRoot();
+  const configPath = join(jjRoot, ".stacked.toml");
 
   let content: string;
   try {

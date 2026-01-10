@@ -1,12 +1,12 @@
 import { logger } from "./logger.ts";
 import {
-  CommandResult,
+  type CommandResult,
   parseJson,
   PRListItemSchema,
   PRStateSchema,
   PRViewSchema,
   runCommand as defaultRunCommand,
-  RunOptions,
+  type RunOptions,
 } from "./utils.ts";
 
 // Command runner type for dependency injection
@@ -48,7 +48,10 @@ export async function getPRNumber(branch: string): Promise<number> {
   );
 
   if (result.code !== 0) {
-    logger.warn("Failed to get PR for branch {branch}: {error}", { branch, error: result.stderr });
+    logger.warn("Failed to get PR for branch {branch}: {error}", {
+      branch,
+      error: result.stderr,
+    });
     return -1;
   }
 
@@ -127,7 +130,9 @@ export async function markPRReady(branch: string): Promise<void> {
 export async function mergePR(branch: string): Promise<void> {
   const isDraft = await isPRDraft(branch);
   if (isDraft) {
-    logger.info("PR for {branch} is a draft, marking as ready for review...", { branch });
+    logger.info("PR for {branch} is a draft, marking as ready for review...", {
+      branch,
+    });
     await markPRReady(branch);
   }
 
@@ -162,4 +167,12 @@ export async function getPRState(branch: string): Promise<string | null> {
 
   const parsed = parseJson(result.stdout, PRStateSchema);
   return parsed?.state ?? null;
+}
+
+export async function isPRMerged(branch: string): Promise<boolean> {
+  return (await getPRState(branch)) === "MERGED";
+}
+
+export async function isPROpen(branch: string): Promise<boolean> {
+  return (await getPRState(branch)) === "OPEN";
 }

@@ -1,4 +1,4 @@
-import { assertEquals, assertRejects } from "jsr:@std/assert";
+import { assertEquals, assertRejects } from "@std/assert";
 
 import {
   createPR,
@@ -24,7 +24,9 @@ function mockResult(
 }
 
 Deno.test("getPRNumber - returns PR number when found", async () => {
-  setCommandRunner(() => Promise.resolve(mockResult(JSON.stringify([{ number: 42 }]))));
+  setCommandRunner(() =>
+    Promise.resolve(mockResult(JSON.stringify([{ number: 42 }])))
+  );
 
   try {
     const result = await getPRNumber("feature-branch");
@@ -35,7 +37,9 @@ Deno.test("getPRNumber - returns PR number when found", async () => {
 });
 
 Deno.test("getPRNumber - returns -1 when command fails", async () => {
-  setCommandRunner(() => Promise.resolve(mockResult("", "Error: no PR found", 1)));
+  setCommandRunner(() =>
+    Promise.resolve(mockResult("", "Error: no PR found", 1))
+  );
 
   try {
     const result = await getPRNumber("nonexistent-branch");
@@ -68,7 +72,9 @@ Deno.test("getPRNumber - returns -1 when JSON parsing fails", async () => {
 });
 
 Deno.test("createPR - creates PR and returns URL", async () => {
-  setCommandRunner(() => Promise.resolve(mockResult("https://github.com/owner/repo/pull/1")));
+  setCommandRunner(() =>
+    Promise.resolve(mockResult("https://github.com/owner/repo/pull/1"))
+  );
 
   try {
     const result = await createPR("feature", "main", false, "My PR Title");
@@ -150,7 +156,9 @@ Deno.test("updatePRBody - updates PR body successfully", async () => {
 });
 
 Deno.test("isPRDraft - returns true when PR is draft", async () => {
-  setCommandRunner(() => Promise.resolve(mockResult(JSON.stringify({ isDraft: true }))));
+  setCommandRunner(() =>
+    Promise.resolve(mockResult(JSON.stringify({ isDraft: true })))
+  );
 
   try {
     const result = await isPRDraft("draft-branch");
@@ -161,7 +169,9 @@ Deno.test("isPRDraft - returns true when PR is draft", async () => {
 });
 
 Deno.test("isPRDraft - returns false when PR is not draft", async () => {
-  setCommandRunner(() => Promise.resolve(mockResult(JSON.stringify({ isDraft: false }))));
+  setCommandRunner(() =>
+    Promise.resolve(mockResult(JSON.stringify({ isDraft: false })))
+  );
 
   try {
     const result = await isPRDraft("ready-branch");
@@ -285,7 +295,9 @@ Deno.test("updatePRBase - updates PR base branch", async () => {
 });
 
 Deno.test("getPRState - returns OPEN state", async () => {
-  setCommandRunner(() => Promise.resolve(mockResult(JSON.stringify({ state: "OPEN" }))));
+  setCommandRunner(() =>
+    Promise.resolve(mockResult(JSON.stringify({ state: "OPEN" })))
+  );
 
   try {
     const result = await getPRState("open-branch");
@@ -296,7 +308,9 @@ Deno.test("getPRState - returns OPEN state", async () => {
 });
 
 Deno.test("getPRState - returns MERGED state", async () => {
-  setCommandRunner(() => Promise.resolve(mockResult(JSON.stringify({ state: "MERGED" }))));
+  setCommandRunner(() =>
+    Promise.resolve(mockResult(JSON.stringify({ state: "MERGED" })))
+  );
 
   try {
     const result = await getPRState("merged-branch");
