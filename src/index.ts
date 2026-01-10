@@ -30,10 +30,10 @@ async function prompt(question: string): Promise<string> {
   return decode(buf.subarray(0, n), true);
 }
 
-async function runDefaultCommand(featureName?: string) {
+async function runDefaultCommand(featureName?: string, changeId: string = "@") {
   const config = await loadConfig();
 
-  const changeIDs = await getStackChangeIDs(config.mainBranch);
+  const changeIDs = await getStackChangeIDs(config.mainBranch, changeId);
   if (changeIDs.length === 0) {
     console.log("No stacked commits found");
     return;
@@ -127,9 +127,10 @@ async function runUpCommand() {
 const pushCommand = new Command()
   .description("Push commits and create/update stacked PRs")
   .arguments("<feature:string>")
-  .action(async (_options: void, feature: string) => {
+  .option("-c, --change <change_id:string>", "Change ID to use as the stack tip", { default: "@" })
+  .action(async (options: { change: string }, feature: string) => {
     try {
-      await runDefaultCommand(feature);
+      await runDefaultCommand(feature, options.change);
     } catch (err) {
       console.error("Error:", err instanceof Error ? err.message : err);
       Deno.exit(1);
