@@ -91,3 +91,11 @@ export async function updatePRBody(
 
   return result.stdout;
 }
+
+export async function mergePR(branch: string): Promise<void> {
+  await runCommand(
+    "gh",
+    ["pr", "merge", branch, "--squash"],
+    { errorPrefix: `Failed to merge PR for branch ${branch}` },
+  );
+}

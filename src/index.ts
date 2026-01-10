@@ -7,15 +7,18 @@ import {
   getBookmark,
   getDescription,
   getEmptyChangeIDs,
+  getStackBookmarks,
   getStackChangeIDs,
   gitFetch,
   gitPush,
   log,
   rebase,
+  rebaseAll,
 } from "./jj.ts";
 import {
   createPR,
   getPRNumber,
+  mergePR,
   updatePRBody,
 } from "./gh.ts";
 import { decode, encode } from "./utils.ts";
@@ -124,6 +127,37 @@ async function runUpCommand() {
   }
 }
 
+async function runMergeCommand(targetBookmark: string) {
+  const config = await loadConfig();
+
+  const bookmarks = await getStackBookmarks(config.mainBranch, targetBookmark);
+  if (bookmarks.length === 0) {
+    console.log("No bookmarks found in stack");
+    return;
+  }
+
+  if (!bookmarks.includes(targetBookmark)) {
+    console.log(`Bookmark '${targetBookmark}' not found in current stack`);
+    return;
+  }
+
+  console.log(`Merging ${bookmarks.length} PR(s) to ${config.mainBranch}...`);
+
+  for (const bookmark of bookmarks) {
+    console.log(`\nMerging PR for branch: ${bookmark}`);
+    await mergePR(bookmark);
+    console.log(`Merged ${bookmark}`);
+
+    console.log("Fetching from remote...");
+    await gitFetch();
+
+    console.log(`Rebasing onto ${config.mainBranch}...`);
+    await rebaseAll(config.mainBranch);
+  }
+
+  console.log("\nAll PRs merged successfully!");
+}
+
 const pushCommand = new Command()
   .description("Push commits and create/update stacked PRs")
   .option("-b, --bookmark <bookmark:string>", "Bookmark name for the branch prefix", { required: true })
@@ -148,12 +182,25 @@ const upCommand = new Command()
     }
   });
 
+const mergeCommand = new Command()
+  .description("Merge all PRs up to and including the specified bookmark")
+  .option("-b, --bookmark <bookmark:string>", "Target bookmark to merge up to", { required: true })
+  .action(async (options: { bookmark: string }) => {
+    try {
+      await runMergeCommand(options.bookmark);
+    } catch (err) {
+      console.error("Error:", err instanceof Error ? err.message : err);
+      Deno.exit(1);
+    }
+  });
+
 const cmd = new Command()
   .name("stacked")
   .version("1.0.0")
   .description("Create/update stacked PRs for jj commits")
   .command("push", pushCommand)
-  .command("up", upCommand);
+  .command("up", upCommand)
+  .command("merge", mergeCommand);
 
 if (Deno.args.length === 0) {
   cmd.showHelp();
