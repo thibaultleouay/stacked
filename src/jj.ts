@@ -23,8 +23,8 @@ export async function getChangeIDs(revset: string): Promise<string[]> {
   return output.split("\n").filter((id) => id.length > 0);
 }
 
-export async function getStackChangeIDs(mainBranch: string): Promise<string[]> {
-  return getChangeIDs(`${mainBranch}..@`);
+export async function getStackChangeIDs(mainBranch: string, changeId: string = "@"): Promise<string[]> {
+  return getChangeIDs(`${mainBranch}..${changeId}`);
 }
 
 export async function getDescription(changeID: string): Promise<string> {
