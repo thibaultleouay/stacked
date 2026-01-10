@@ -48,7 +48,10 @@ export async function getPRNumber(branch: string): Promise<number> {
   );
 
   if (result.code !== 0) {
-    logger.warn("Failed to get PR for branch {branch}: {error}", { branch, error: result.stderr });
+    logger.warn("Failed to get PR for branch {branch}: {error}", {
+      branch,
+      error: result.stderr,
+    });
     return -1;
   }
 
@@ -127,7 +130,9 @@ export async function markPRReady(branch: string): Promise<void> {
 export async function mergePR(branch: string): Promise<void> {
   const isDraft = await isPRDraft(branch);
   if (isDraft) {
-    logger.info("PR for {branch} is a draft, marking as ready for review...", { branch });
+    logger.info("PR for {branch} is a draft, marking as ready for review...", {
+      branch,
+    });
     await markPRReady(branch);
   }
 
