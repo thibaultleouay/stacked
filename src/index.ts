@@ -4,7 +4,6 @@ import { loadConfig } from "./config.ts";
 import {
   abandon,
   createBookmark,
-  getAllStackBookmarks,
   getBookmark,
   getDescription,
   getEmptyChangeIDs,
@@ -183,18 +182,21 @@ async function runMergeCommand(targetBookmark: string) {
   }
 
   // After all merges, check if there are remaining bookmarks in the stack beyond the target
-  const allRemainingBookmarks = await getAllStackBookmarks(config.mainBranch);
+  const allRemainingBookmarks = await getStackBookmarks(config.mainBranch);
   if (allRemainingBookmarks.length > 0) {
     console.log("\nUpdating base branch for remaining PRs in the stack...");
-    // Find the first bookmark with an open PR (skip merged/closed PRs)
-    for (const remainingBookmark of allRemainingBookmarks) {
-      if (await isPROpen(remainingBookmark)) {
-        await updatePRBase(remainingBookmark, config.mainBranch);
-        console.log(`Updated ${remainingBookmark} to target ${config.mainBranch}`);
-        break;
-      } else {
+    // Update all remaining PRs: first targets main, rest target previous bookmark
+    let lastOpenBookmark = "";
+    for (let j = 0; j < allRemainingBookmarks.length; j++) {
+      const remainingBookmark = allRemainingBookmarks[j];
+      if (!(await isPROpen(remainingBookmark))) {
         console.log(`Skipping ${remainingBookmark} (PR is not open)`);
+        continue;
       }
+      const newBase = lastOpenBookmark || config.mainBranch;
+      await updatePRBase(remainingBookmark, newBase);
+      console.log(`Updated ${remainingBookmark} to target ${newBase}`);
+      lastOpenBookmark = remainingBookmark;
     }
   }
 
