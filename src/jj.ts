@@ -45,7 +45,7 @@ export async function getBookmark(changeID: string): Promise<string> {
   return output.slice(0, colonIndex);
 }
 
-export async function getStackBookmarks(mainBranch: string, targetBookmark: string): Promise<string[]> {
+export async function getStackBookmarks(mainBranch: string, targetBookmark?: string): Promise<string[]> {
   const changeIDs = await getStackChangeIDs(mainBranch);
   const bookmarks: string[] = [];
 
@@ -53,23 +53,9 @@ export async function getStackBookmarks(mainBranch: string, targetBookmark: stri
     const bookmark = await getBookmark(changeID);
     if (bookmark) {
       bookmarks.push(bookmark);
-      if (bookmark === targetBookmark) {
+      if (targetBookmark && bookmark === targetBookmark) {
         break;
       }
-    }
-  }
-
-  return bookmarks;
-}
-
-export async function getAllStackBookmarks(mainBranch: string): Promise<string[]> {
-  const changeIDs = await getStackChangeIDs(mainBranch);
-  const bookmarks: string[] = [];
-
-  for (const changeID of changeIDs) {
-    const bookmark = await getBookmark(changeID);
-    if (bookmark) {
-      bookmarks.push(bookmark);
     }
   }
 

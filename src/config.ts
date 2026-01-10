@@ -14,22 +14,16 @@ export async function loadConfig(): Promise<Config> {
   const gitRoot = await getGitRoot();
   const configPath = join(gitRoot, ".stacked.toml");
 
-  let exists = false;
+  let content: string;
   try {
-    const stat = await Deno.stat(configPath);
-    exists = stat.isFile;
+    content = await Deno.readTextFile(configPath);
   } catch {
-    exists = false;
-  }
-
-  if (!exists) {
     const tomlContent = stringify(defaultConfig);
     await Deno.writeTextFile(configPath, tomlContent);
     console.log(`Initialized default config at ${configPath}, please re-run the command`);
     Deno.exit(0);
   }
 
-  const content = await Deno.readTextFile(configPath);
   const parsed = parse(content);
 
   const result = ConfigSchema.safeParse({

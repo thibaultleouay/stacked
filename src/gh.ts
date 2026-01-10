@@ -1,25 +1,5 @@
 import { parseJson, PRListItemSchema, PRStateSchema, PRViewSchema, runCommand } from "./utils.ts";
 
-export async function getNextAvailablePRNumber(): Promise<number> {
-  const result = await runCommand("gh", [
-    "pr",
-    "list",
-    "-L",
-    "1",
-    "--state",
-    "all",
-    "--json",
-    "number",
-  ], { errorPrefix: "Failed to get PR list" });
-
-  const parsed = parseJson(result.stdout, PRListItemSchema);
-  if (!parsed || parsed.length === 0) {
-    return 1;
-  }
-
-  return parsed[0].number + 1;
-}
-
 export async function getPRNumber(branch: string): Promise<number> {
   const result = await runCommand(
     "gh",
@@ -140,7 +120,7 @@ export async function updatePRBase(
   );
 }
 
-export async function isPRMerged(branch: string): Promise<boolean> {
+async function getPRState(branch: string): Promise<string | null> {
   const result = await runCommand(
     "gh",
     ["pr", "view", branch, "--json", "state"],
@@ -148,32 +128,17 @@ export async function isPRMerged(branch: string): Promise<boolean> {
   );
 
   if (result.code !== 0) {
-    return false;
+    return null;
   }
 
   const parsed = parseJson(result.stdout, PRStateSchema);
-  if (!parsed) {
-    return false;
-  }
+  return parsed?.state ?? null;
+}
 
-  return parsed.state === "MERGED";
+export async function isPRMerged(branch: string): Promise<boolean> {
+  return (await getPRState(branch)) === "MERGED";
 }
 
 export async function isPROpen(branch: string): Promise<boolean> {
-  const result = await runCommand(
-    "gh",
-    ["pr", "view", branch, "--json", "state"],
-    { throwOnError: false },
-  );
-
-  if (result.code !== 0) {
-    return false;
-  }
-
-  const parsed = parseJson(result.stdout, PRStateSchema);
-  if (!parsed) {
-    return false;
-  }
-
-  return parsed.state === "OPEN";
+  return (await getPRState(branch)) === "OPEN";
 }
