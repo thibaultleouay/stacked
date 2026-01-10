@@ -16,8 +16,7 @@ import {
 import {
   createPR,
   getPRNumber,
-  isPRMerged,
-  isPROpen,
+  getPRState,
   mergePR,
   updatePRBase,
   updatePRBody,
@@ -109,7 +108,7 @@ async function runMergeCommand(targetBookmark: string) {
     const bookmark = bookmarks[i];
     logger.info("\nProcessing PR for branch: {bookmark}", { bookmark });
 
-    if (await isPRMerged(bookmark)) {
+    if ((await getPRState(bookmark)) === "MERGED") {
       logger.info("PR for {bookmark} is already merged, skipping...", { bookmark });
       continue;
     }
@@ -147,7 +146,7 @@ async function runMergeCommand(targetBookmark: string) {
     let lastOpenBookmark = "";
     for (let j = 0; j < allRemainingBookmarks.length; j++) {
       const remainingBookmark = allRemainingBookmarks[j];
-      if (!(await isPROpen(remainingBookmark))) {
+      if ((await getPRState(remainingBookmark)) !== "OPEN") {
         logger.info("Skipping {bookmark} (PR is not open)", { bookmark: remainingBookmark });
         continue;
       }
