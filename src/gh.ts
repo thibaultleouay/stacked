@@ -1,8 +1,36 @@
 import { logger } from "./logger.ts";
-import { parseJson, PRListItemSchema, PRStateSchema, PRViewSchema, runCommand } from "./utils.ts";
+import {
+  CommandResult,
+  parseJson,
+  PRListItemSchema,
+  PRStateSchema,
+  PRViewSchema,
+  runCommand as defaultRunCommand,
+  RunOptions,
+} from "./utils.ts";
+
+// Command runner type for dependency injection
+export type CommandRunner = (
+  cmd: string,
+  args: string[],
+  options?: RunOptions,
+) => Promise<CommandResult>;
+
+// Default command runner
+let commandRunner: CommandRunner = defaultRunCommand;
+
+// Allow tests to inject a mock command runner
+export function setCommandRunner(runner: CommandRunner): void {
+  commandRunner = runner;
+}
+
+// Reset to default command runner
+export function resetCommandRunner(): void {
+  commandRunner = defaultRunCommand;
+}
 
 export async function getPRNumber(branch: string): Promise<number> {
-  const result = await runCommand(
+  const result = await commandRunner(
     "gh",
     [
       "pr",
@@ -53,7 +81,7 @@ export async function createPR(
     args.push("--draft");
   }
 
-  const result = await runCommand("gh", args, {
+  const result = await commandRunner("gh", args, {
     errorPrefix: "Failed to create PR",
   });
 
@@ -64,7 +92,7 @@ export async function updatePRBody(
   prNum: number,
   body: string,
 ): Promise<string> {
-  const result = await runCommand(
+  const result = await commandRunner(
     "gh",
     ["pr", "edit", String(prNum), "-b", body],
     { errorPrefix: `Failed to update PR #${prNum}` },
@@ -74,7 +102,7 @@ export async function updatePRBody(
 }
 
 export async function isPRDraft(branch: string): Promise<boolean> {
-  const result = await runCommand(
+  const result = await commandRunner(
     "gh",
     ["pr", "view", branch, "--json", "isDraft"],
     { errorPrefix: `Failed to get PR draft status for branch ${branch}` },
@@ -89,7 +117,7 @@ export async function isPRDraft(branch: string): Promise<boolean> {
 }
 
 export async function markPRReady(branch: string): Promise<void> {
-  await runCommand(
+  await commandRunner(
     "gh",
     ["pr", "ready", branch],
     { errorPrefix: `Failed to mark PR as ready for branch ${branch}` },
@@ -103,7 +131,7 @@ export async function mergePR(branch: string): Promise<void> {
     await markPRReady(branch);
   }
 
-  await runCommand(
+  await commandRunner(
     "gh",
     ["pr", "merge", branch, "--squash"],
     { errorPrefix: `Failed to merge PR for branch ${branch}` },
@@ -114,15 +142,15 @@ export async function updatePRBase(
   branch: string,
   newBase: string,
 ): Promise<void> {
-  await runCommand(
+  await commandRunner(
     "gh",
     ["pr", "edit", branch, "--base", newBase],
     { errorPrefix: `Failed to update base branch for PR ${branch}` },
   );
 }
 
-async function getPRState(branch: string): Promise<string | null> {
-  const result = await runCommand(
+export async function getPRState(branch: string): Promise<string | null> {
+  const result = await commandRunner(
     "gh",
     ["pr", "view", branch, "--json", "state"],
     { throwOnError: false },
@@ -134,12 +162,4 @@ async function getPRState(branch: string): Promise<string | null> {
 
   const parsed = parseJson(result.stdout, PRStateSchema);
   return parsed?.state ?? null;
-}
-
-export async function isPRMerged(branch: string): Promise<boolean> {
-  return (await getPRState(branch)) === "MERGED";
-}
-
-export async function isPROpen(branch: string): Promise<boolean> {
-  return (await getPRState(branch)) === "OPEN";
 }

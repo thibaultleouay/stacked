@@ -94,7 +94,7 @@ export const PRViewSchema = z.object({
 export type PRView = z.infer<typeof PRViewSchema>;
 
 export const PRStateSchema = z.object({
-  state: z.string(),
+  state: z.enum(["MERGED", "OPEN"]),
 });
 
 export type PRState = z.infer<typeof PRStateSchema>;
