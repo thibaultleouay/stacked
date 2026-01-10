@@ -1,4 +1,4 @@
-import { parseJson, PRListItemSchema, runCommand } from "./utils.ts";
+import { parseJson, PRListItemSchema, PRViewSchema, runCommand } from "./utils.ts";
 
 export async function getNextAvailablePRNumber(): Promise<number> {
   const result = await runCommand("gh", [
@@ -92,7 +92,36 @@ export async function updatePRBody(
   return result.stdout;
 }
 
+export async function isPRDraft(branch: string): Promise<boolean> {
+  const result = await runCommand(
+    "gh",
+    ["pr", "view", branch, "--json", "isDraft"],
+    { errorPrefix: `Failed to get PR draft status for branch ${branch}` },
+  );
+
+  const parsed = parseJson(result.stdout, PRViewSchema);
+  if (!parsed) {
+    throw new Error(`Failed to parse PR draft status for branch ${branch}`);
+  }
+
+  return parsed.isDraft;
+}
+
+export async function markPRReady(branch: string): Promise<void> {
+  await runCommand(
+    "gh",
+    ["pr", "ready", branch],
+    { errorPrefix: `Failed to mark PR as ready for branch ${branch}` },
+  );
+}
+
 export async function mergePR(branch: string): Promise<void> {
+  const isDraft = await isPRDraft(branch);
+  if (isDraft) {
+    console.log(`PR for ${branch} is a draft, marking as ready for review...`);
+    await markPRReady(branch);
+  }
+
   await runCommand(
     "gh",
     ["pr", "merge", branch, "--squash"],
