@@ -5,6 +5,7 @@ await configure({
     console: getConsoleSink(),
   },
   loggers: [
+    { category: ["logtape", "meta"], sinks: ["console"], lowestLevel: "warning" },
     { category: ["stacked"], sinks: ["console"], lowestLevel: "info" },
   ],
 });
