@@ -1,5 +1,6 @@
 import { parse, stringify } from "smol-toml";
 import { join } from "@std/path";
+import { logger } from "./logger.ts";
 import { type Config, ConfigSchema, defaultConfig } from "./types.ts";
 import { runCommand } from "./utils.ts";
 
@@ -20,7 +21,7 @@ export async function loadConfig(): Promise<Config> {
   } catch {
     const tomlContent = stringify(defaultConfig);
     await Deno.writeTextFile(configPath, tomlContent);
-    console.log(`Initialized default config at ${configPath}, please re-run the command`);
+    logger.info("Initialized default config at {configPath}, please re-run the command", { configPath });
     Deno.exit(0);
   }
 

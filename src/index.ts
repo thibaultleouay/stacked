@@ -1,5 +1,6 @@
 #!/usr/bin/env -S deno run --allow-run --allow-read --allow-write --allow-env
 import { Command } from "@cliffy/command";
+import { logger } from "./logger.ts";
 import { loadConfig } from "./config.ts";
 import {
   abandon,
@@ -42,7 +43,7 @@ async function runDefaultCommand(featureName?: string, changeId: string = "@") {
 
   const changeIDs = await getStackChangeIDs(config.mainBranch, changeId);
   if (changeIDs.length === 0) {
-    console.log("No stacked commits found");
+    logger.info("No stacked commits found");
     return;
   }
 
@@ -61,17 +62,17 @@ async function runDefaultCommand(featureName?: string, changeId: string = "@") {
     }
 
     await gitPush(bookmark);
-    console.log("Branch pushed to remote");
+    logger.info("Branch pushed to remote");
 
     let prNum = await getPRNumber(bookmark);
 
     if (prNum === -1) {
-      console.log(`No PR created for branch yet, creating: ${bookmark}`);
+      logger.info("No PR created for branch yet, creating: {bookmark}", { bookmark });
       const firstLine = desc.split("\n")[0];
       const title = `${bookmark}: ${firstLine}`;
       const baseBranch = lastBranch || config.mainBranch;
       await createPR(bookmark, baseBranch, config.draft, title);
-      console.log("PR created");
+      logger.info("PR created");
       prNum = await getPRNumber(bookmark);
     }
 
@@ -98,7 +99,7 @@ async function runDefaultCommand(featureName?: string, changeId: string = "@") {
 
     const result = await updatePRBody(prNum, desc + "\n" + prInfo);
     if (result) {
-      console.log("Successfully updated PR:", result);
+      logger.info("Successfully updated PR: {result}", { result });
     }
   }
 }
@@ -106,10 +107,10 @@ async function runDefaultCommand(featureName?: string, changeId: string = "@") {
 async function runUpCommand() {
   const config = await loadConfig();
 
-  console.log("Fetching from remote...");
+  logger.info("Fetching from remote...");
   await gitFetch();
 
-  console.log(`Rebasing onto ${config.mainBranch}...`);
+  logger.info("Rebasing onto {mainBranch}...", { mainBranch: config.mainBranch });
   await rebase(config.mainBranch);
 
   const emptyChangeIDs = await getEmptyChangeIDs(config.mainBranch);
@@ -123,9 +124,9 @@ async function runUpCommand() {
 
     if (normalized === "y" || normalized === "yes") {
       await abandon(changeID);
-      console.log(`Abandoned ${shortID}`);
+      logger.info("Abandoned {shortID}", { shortID });
     } else {
-      console.log("Abort");
+      logger.info("Abort");
       return;
     }
   }
@@ -136,47 +137,47 @@ async function runMergeCommand(targetBookmark: string) {
 
   const bookmarks = await getStackBookmarks(config.mainBranch, targetBookmark);
   if (bookmarks.length === 0) {
-    console.log("No bookmarks found in stack");
+    logger.info("No bookmarks found in stack");
     return;
   }
 
   if (!bookmarks.includes(targetBookmark)) {
-    console.log(`Bookmark '${targetBookmark}' not found in current stack`);
+    logger.info("Bookmark '{targetBookmark}' not found in current stack", { targetBookmark });
     return;
   }
 
-  console.log(`Merging ${bookmarks.length} PR(s) to ${config.mainBranch}...`);
+  logger.info("Merging {count} PR(s) to {mainBranch}...", { count: bookmarks.length, mainBranch: config.mainBranch });
 
   for (let i = 0; i < bookmarks.length; i++) {
     const bookmark = bookmarks[i];
-    console.log(`\nProcessing PR for branch: ${bookmark}`);
+    logger.info("\nProcessing PR for branch: {bookmark}", { bookmark });
 
     if (await isPRMerged(bookmark)) {
-      console.log(`PR for ${bookmark} is already merged, skipping...`);
+      logger.info("PR for {bookmark} is already merged, skipping...", { bookmark });
       continue;
     }
 
     await mergePR(bookmark);
-    console.log(`Merged ${bookmark}`);
+    logger.info("Merged {bookmark}", { bookmark });
 
-    console.log("Fetching from remote...");
+    logger.info("Fetching from remote...");
     await gitFetch();
 
-    console.log(`Rebasing onto ${config.mainBranch}...`);
+    logger.info("Rebasing onto {mainBranch}...", { mainBranch: config.mainBranch });
     await rebaseAll(config.mainBranch);
 
-    console.log("Pushing to remote...");
+    logger.info("Pushing to remote...");
     await gitPushAll();
 
     // Update base branches for remaining PRs in the stack (within target bookmarks)
     const remainingBookmarks = bookmarks.slice(i + 1);
     if (remainingBookmarks.length > 0) {
-      console.log("Updating base branches for remaining PRs...");
+      logger.info("Updating base branches for remaining PRs...");
       for (let j = 0; j < remainingBookmarks.length; j++) {
         const remainingBookmark = remainingBookmarks[j];
         const newBase = j === 0 ? config.mainBranch : remainingBookmarks[j - 1];
         await updatePRBase(remainingBookmark, newBase);
-        console.log(`Updated ${remainingBookmark} to target ${newBase}`);
+        logger.info("Updated {bookmark} to target {base}", { bookmark: remainingBookmark, base: newBase });
       }
     }
   }
@@ -184,23 +185,23 @@ async function runMergeCommand(targetBookmark: string) {
   // After all merges, check if there are remaining bookmarks in the stack beyond the target
   const allRemainingBookmarks = await getStackBookmarks(config.mainBranch);
   if (allRemainingBookmarks.length > 0) {
-    console.log("\nUpdating base branch for remaining PRs in the stack...");
+    logger.info("\nUpdating base branch for remaining PRs in the stack...");
     // Update all remaining PRs: first targets main, rest target previous bookmark
     let lastOpenBookmark = "";
     for (let j = 0; j < allRemainingBookmarks.length; j++) {
       const remainingBookmark = allRemainingBookmarks[j];
       if (!(await isPROpen(remainingBookmark))) {
-        console.log(`Skipping ${remainingBookmark} (PR is not open)`);
+        logger.info("Skipping {bookmark} (PR is not open)", { bookmark: remainingBookmark });
         continue;
       }
       const newBase = lastOpenBookmark || config.mainBranch;
       await updatePRBase(remainingBookmark, newBase);
-      console.log(`Updated ${remainingBookmark} to target ${newBase}`);
+      logger.info("Updated {bookmark} to target {base}", { bookmark: remainingBookmark, base: newBase });
       lastOpenBookmark = remainingBookmark;
     }
   }
 
-  console.log("\nAll PRs merged successfully!");
+  logger.info("\nAll PRs merged successfully!");
 }
 
 const pushCommand = new Command()
@@ -211,7 +212,7 @@ const pushCommand = new Command()
     try {
       await runDefaultCommand(options.bookmark, options.change);
     } catch (err) {
-      console.error("Error:", err instanceof Error ? err.message : err);
+      logger.error("Error: {error}", { error: err instanceof Error ? err.message : err });
       Deno.exit(1);
     }
   });
@@ -222,7 +223,7 @@ const upCommand = new Command()
     try {
       await runUpCommand();
     } catch (err) {
-      console.error("Error:", err instanceof Error ? err.message : err);
+      logger.error("Error: {error}", { error: err instanceof Error ? err.message : err });
       Deno.exit(1);
     }
   });
@@ -234,7 +235,7 @@ const mergeCommand = new Command()
     try {
       await runMergeCommand(options.bookmark);
     } catch (err) {
-      console.error("Error:", err instanceof Error ? err.message : err);
+      logger.error("Error: {error}", { error: err instanceof Error ? err.message : err });
       Deno.exit(1);
     }
   });
