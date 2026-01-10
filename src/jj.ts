@@ -62,11 +62,11 @@ export async function getChangeIDs(revset: string): Promise<string[]> {
   return output.split("\n").filter((id) => id.length > 0);
 }
 
-export async function getStackChangeIDs(mainBranch: string, changeId: string = "@"): Promise<string[]> {
+export function getStackChangeIDs(mainBranch: string, changeId: string = "@"): Promise<string[]> {
   return getChangeIDs(`${mainBranch}..${changeId}`);
 }
 
-export async function getDescription(changeID: string): Promise<string> {
+export function getDescription(changeID: string): Promise<string> {
   return jj(["log", "--no-graph", "-T", "description", "-r", changeID]);
 }
 
@@ -142,6 +142,6 @@ export async function log(revset: string): Promise<void> {
   await interactiveCommandRunner("jj", ["log", "-r", revset]);
 }
 
-export async function getEmptyChangeIDs(mainBranch: string): Promise<string[]> {
+export function getEmptyChangeIDs(mainBranch: string): Promise<string[]> {
   return getChangeIDs(`(${mainBranch}..@-) & empty()`);
 }
