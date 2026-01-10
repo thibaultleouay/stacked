@@ -126,11 +126,11 @@ async function runUpCommand() {
 
 const pushCommand = new Command()
   .description("Push commits and create/update stacked PRs")
-  .arguments("<feature:string>")
+  .option("-b, --bookmark <bookmark:string>", "Bookmark name for the branch prefix", { required: true })
   .option("-c, --change <change_id:string>", "Change ID to use as the stack tip", { default: "@" })
-  .action(async (options: { change: string }, feature: string) => {
+  .action(async (options: { bookmark: string; change: string }) => {
     try {
-      await runDefaultCommand(feature, options.change);
+      await runDefaultCommand(options.bookmark, options.change);
     } catch (err) {
       console.error("Error:", err instanceof Error ? err.message : err);
       Deno.exit(1);

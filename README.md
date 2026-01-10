@@ -41,12 +41,29 @@ draft = true
 Creates or updates stacked PRs for all commits between main and your current revision.
 
 ```bash
-deno task start push
+deno task start push -b <bookmark-name>
+```
+
+**Options:**
+
+| Option | Description | Required |
+|--------|-------------|----------|
+| `-b, --bookmark <name>` | Bookmark name for the branch prefix | Yes |
+| `-c, --change <change_id>` | Change ID to use as the stack tip | No (default: `@`) |
+
+**Examples:**
+
+```bash
+# Push current stack with bookmark prefix "feature-auth"
+deno task start push -b feature-auth
+
+# Push from a specific change ID
+deno task start push -b feature-auth -c abc123
 ```
 
 This command:
 1. Finds all commits in your stack (`mainBranch..@-`)
-2. Creates a branch for each commit (if not already created)
+2. Creates a bookmark for each commit using the provided name
 3. Pushes each branch to the remote
 4. Creates a PR for each branch (if not already created)
 5. Updates all PR descriptions with stack navigation links
