@@ -1,4 +1,4 @@
-import { parseJson, PRListItemSchema, PRViewSchema, runCommand } from "./utils.ts";
+import { parseJson, PRListItemSchema, PRStateSchema, PRViewSchema, runCommand } from "./utils.ts";
 
 export async function getNextAvailablePRNumber(): Promise<number> {
   const result = await runCommand("gh", [
@@ -138,4 +138,23 @@ export async function updatePRBase(
     ["pr", "edit", branch, "--base", newBase],
     { errorPrefix: `Failed to update base branch for PR ${branch}` },
   );
+}
+
+export async function isPRMerged(branch: string): Promise<boolean> {
+  const result = await runCommand(
+    "gh",
+    ["pr", "view", branch, "--json", "state"],
+    { throwOnError: false },
+  );
+
+  if (result.code !== 0) {
+    return false;
+  }
+
+  const parsed = parseJson(result.stdout, PRStateSchema);
+  if (!parsed) {
+    return false;
+  }
+
+  return parsed.state === "MERGED";
 }

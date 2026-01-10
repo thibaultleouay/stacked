@@ -62,6 +62,20 @@ export async function getStackBookmarks(mainBranch: string, targetBookmark: stri
   return bookmarks;
 }
 
+export async function getAllStackBookmarks(mainBranch: string): Promise<string[]> {
+  const changeIDs = await getStackChangeIDs(mainBranch);
+  const bookmarks: string[] = [];
+
+  for (const changeID of changeIDs) {
+    const bookmark = await getBookmark(changeID);
+    if (bookmark) {
+      bookmarks.push(bookmark);
+    }
+  }
+
+  return bookmarks;
+}
+
 export async function createBookmark(
   changeID: string,
   branchPrefix: string,
