@@ -86,3 +86,9 @@ export const PRListItemSchema = z.array(
 );
 
 export type PRListItem = z.infer<typeof PRListItemSchema>[number];
+
+export const PRViewSchema = z.object({
+  isDraft: z.boolean(),
+});
+
+export type PRView = z.infer<typeof PRViewSchema>;
