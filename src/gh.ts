@@ -168,3 +168,11 @@ export async function getPRState(branch: string): Promise<string | null> {
   const parsed = parseJson(result.stdout, PRStateSchema);
   return parsed?.state ?? null;
 }
+
+export async function isPRMerged(branch: string): Promise<boolean> {
+  return (await getPRState(branch)) === "MERGED";
+}
+
+export async function isPROpen(branch: string): Promise<boolean> {
+  return (await getPRState(branch)) === "OPEN";
+}
