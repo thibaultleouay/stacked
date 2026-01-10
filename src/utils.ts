@@ -92,3 +92,9 @@ export const PRViewSchema = z.object({
 });
 
 export type PRView = z.infer<typeof PRViewSchema>;
+
+export const PRStateSchema = z.object({
+  state: z.string(),
+});
+
+export type PRState = z.infer<typeof PRStateSchema>;

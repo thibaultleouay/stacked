@@ -4,6 +4,7 @@ import { loadConfig } from "./config.ts";
 import {
   abandon,
   createBookmark,
+  getAllStackBookmarks,
   getBookmark,
   getDescription,
   getEmptyChangeIDs,
@@ -19,6 +20,8 @@ import {
 import {
   createPR,
   getPRNumber,
+  isPRMerged,
+  isPROpen,
   mergePR,
   updatePRBase,
   updatePRBody,
@@ -147,11 +150,15 @@ async function runMergeCommand(targetBookmark: string) {
 
   for (let i = 0; i < bookmarks.length; i++) {
     const bookmark = bookmarks[i];
-    console.log(`\nMerging PR for branch: ${bookmark}`);
+    console.log(`\nProcessing PR for branch: ${bookmark}`);
+
+    if (await isPRMerged(bookmark)) {
+      console.log(`PR for ${bookmark} is already merged, skipping...`);
+      continue;
+    }
+
     await mergePR(bookmark);
     console.log(`Merged ${bookmark}`);
-
-
 
     console.log("Fetching from remote...");
     await gitFetch();
@@ -162,7 +169,7 @@ async function runMergeCommand(targetBookmark: string) {
     console.log("Pushing to remote...");
     await gitPushAll();
 
-    // Update base branches for remaining PRs in the stack
+    // Update base branches for remaining PRs in the stack (within target bookmarks)
     const remainingBookmarks = bookmarks.slice(i + 1);
     if (remainingBookmarks.length > 0) {
       console.log("Updating base branches for remaining PRs...");
@@ -173,7 +180,22 @@ async function runMergeCommand(targetBookmark: string) {
         console.log(`Updated ${remainingBookmark} to target ${newBase}`);
       }
     }
+  }
 
+  // After all merges, check if there are remaining bookmarks in the stack beyond the target
+  const allRemainingBookmarks = await getAllStackBookmarks(config.mainBranch);
+  if (allRemainingBookmarks.length > 0) {
+    console.log("\nUpdating base branch for remaining PRs in the stack...");
+    // Find the first bookmark with an open PR (skip merged/closed PRs)
+    for (const remainingBookmark of allRemainingBookmarks) {
+      if (await isPROpen(remainingBookmark)) {
+        await updatePRBase(remainingBookmark, config.mainBranch);
+        console.log(`Updated ${remainingBookmark} to target ${config.mainBranch}`);
+        break;
+      } else {
+        console.log(`Skipping ${remainingBookmark} (PR is not open)`);
+      }
+    }
   }
 
   console.log("\nAll PRs merged successfully!");
