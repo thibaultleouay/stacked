@@ -1,3 +1,4 @@
+import { logger } from "./logger.ts";
 import { parseJson, PRListItemSchema, PRStateSchema, PRViewSchema, runCommand } from "./utils.ts";
 
 export async function getPRNumber(branch: string): Promise<number> {
@@ -19,7 +20,7 @@ export async function getPRNumber(branch: string): Promise<number> {
   );
 
   if (result.code !== 0) {
-    console.error(`Warning: Failed to get PR for branch ${branch}: ${result.stderr}`);
+    logger.warn("Failed to get PR for branch {branch}: {error}", { branch, error: result.stderr });
     return -1;
   }
 
@@ -98,7 +99,7 @@ export async function markPRReady(branch: string): Promise<void> {
 export async function mergePR(branch: string): Promise<void> {
   const isDraft = await isPRDraft(branch);
   if (isDraft) {
-    console.log(`PR for ${branch} is a draft, marking as ready for review...`);
+    logger.info("PR for {branch} is a draft, marking as ready for review...", { branch });
     await markPRReady(branch);
   }
 

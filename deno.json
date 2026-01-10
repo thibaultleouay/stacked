@@ -14,6 +14,7 @@
     "compile:macos-arm64": "deno compile --allow-run --allow-read --allow-write --allow-env --target aarch64-apple-darwin --output build/stacked-macos-arm64 src/index.ts"
   },
   "imports": {
+    "@logtape/logtape": "jsr:@logtape/logtape@^1.3.6",
     "smol-toml": "npm:smol-toml@1.3.0",
     "@cliffy/command": "jsr:@cliffy/command@1.0.0-rc.8",
     "@std/path": "jsr:@std/path@1",
