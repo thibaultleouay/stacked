@@ -1,7 +1,46 @@
-import { runCommand, runCommandInteractive } from "./utils.ts";
+import {
+  type CommandResult,
+  runCommand as defaultRunCommand,
+  runCommandInteractive as defaultRunCommandInteractive,
+  type RunOptions,
+} from "./utils.ts";
 
-async function jj(args: string[]): Promise<string> {
-  const result = await runCommand("jj", args);
+// Command runner types for dependency injection
+export type CommandRunner = (
+  cmd: string,
+  args: string[],
+  options?: RunOptions,
+) => Promise<CommandResult>;
+
+export type InteractiveCommandRunner = (
+  cmd: string,
+  args: string[],
+) => Promise<void>;
+
+// Default command runners
+let commandRunner: CommandRunner = defaultRunCommand;
+let interactiveCommandRunner: InteractiveCommandRunner = defaultRunCommandInteractive;
+
+// Allow tests to inject mock command runners
+export function setCommandRunner(runner: CommandRunner): void {
+  commandRunner = runner;
+}
+
+export function setInteractiveCommandRunner(runner: InteractiveCommandRunner): void {
+  interactiveCommandRunner = runner;
+}
+
+// Reset to default command runners
+export function resetCommandRunner(): void {
+  commandRunner = defaultRunCommand;
+}
+
+export function resetInteractiveCommandRunner(): void {
+  interactiveCommandRunner = defaultRunCommandInteractive;
+}
+
+async function jj(args: string[], options?: RunOptions): Promise<string> {
+  const result = await commandRunner("jj", args, options);
   return result.stdout;
 }
 
@@ -74,7 +113,7 @@ export async function createBookmark(
 }
 
 export async function gitPush(bookmark: string): Promise<void> {
-  await runCommand("jj", ["git", "push", "-b", bookmark], {
+  await commandRunner("jj", ["git", "push", "-b", bookmark], {
     errorPrefix: `Failed to push branch ${bookmark}`,
   });
 }
@@ -100,7 +139,7 @@ export async function abandon(changeID: string): Promise<void> {
 }
 
 export async function log(revset: string): Promise<void> {
-  await runCommandInteractive("jj", ["log", "-r", revset]);
+  await interactiveCommandRunner("jj", ["log", "-r", revset]);
 }
 
 export async function getEmptyChangeIDs(mainBranch: string): Promise<string[]> {

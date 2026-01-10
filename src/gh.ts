@@ -1,12 +1,12 @@
 import { logger } from "./logger.ts";
 import {
-  CommandResult,
+  type CommandResult,
   parseJson,
   PRListItemSchema,
   PRStateSchema,
   PRViewSchema,
   runCommand as defaultRunCommand,
-  RunOptions,
+  type RunOptions,
 } from "./utils.ts";
 
 // Command runner type for dependency injection
