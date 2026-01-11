@@ -187,8 +187,8 @@ const mergeCommand = new Command()
 
 const cmd = new Command()
   .name("stacked")
-  .version("1.0.0")
-  .description("Create/update stacked PRs for jj commits")
+  .version("0.0.1")
+  .description("Create/merge stacked PRs on GitHub for jj changes")
   .command("push", pushCommand)
   .command("merge", mergeCommand);
 
