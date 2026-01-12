@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(deno task:*)"
+      "Bash(deno task:*)",
+      "Bash(deno test:*)",
+      "Bash(jj:*)",
+      "Bash(gh:*)"
     ]
   }
 }
