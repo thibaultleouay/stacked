@@ -9,8 +9,7 @@ Based on [fj](https://github.com/lazywei/fj).
 - Creates a GitHub PR for each bookmarked commit in your jj stack
 - Automatically maintains base branch relationships between PRs
 - Adds stack navigation links to PR descriptions
-- Syncs your stack with upstream changes
-- Prompts to clean up merged commits
+- Merges a stack of OR
 
 ## Why Stacked PRs?
 
@@ -19,7 +18,7 @@ Stacked pull requests break down large features into smaller, focused changes th
 - **Smaller PRs are easier to review** - Reviewers can focus on one logical change at a time
 - **Faster feedback loops** - Get reviews on early parts of your work while continuing to build
 - **Incremental approvals** - Merge completed work without waiting for the entire feature
-- **Better git history** - Each commit represents a single, coherent change
+- **Better history** - Each commit represents a single, coherent change
 - **Easier rebasing** - Smaller commits are simpler to rebase and resolve conflicts
 
 ## How It Works
@@ -32,8 +31,6 @@ With Jujutsu, you create a stack of commits where each commit builds on the prev
 │  downgrade version
 ○  kopmorwp thibaultleouay@gmail.com 2026-01-11 13:20:06 trying-something1 feebf6fa
 │  Update src/index.ts
-○  uqytmmxr thibaultleouay@gmail.com 2026-01-11 13:15:43 6caf8051
-│  this should be update by copilot
 ◆  pvrmmsmk thibaultleouay@gmail.com 2026-01-10 20:58:00 main 72ec6c99
 │  more3: some small improvments (#26)
 ~
@@ -55,9 +52,7 @@ Here's a complete workflow showing how to create, update, and merge stacked PRs:
 ❯ jj log
 @  ryrpnrmy ... trying-something2 eca27b8e
 │  downgrade version
-○  kopmorwp ... trying-something1 feebf6fa
-│  Update src/index.ts
-○  uqytmmxr ... 6caf8051
+○  uqytmmxr ... trying-something1 feebf6fa
 │  this should be update by copilot
 ◆  pvrmmsmk ... main 72ec6c99
 ```
@@ -86,6 +81,20 @@ This creates two PRs:
 
 #### 3. Make changes based on review feedback
 
+Create a
+```
+❯ jj log
+@  ryrpnrmy thibaultleouay@gmail.com 2026-01-11 13:22:55 trying-something2* 07ac8262
+│  downgrade version
+○  kopmorwp thibaultleouay@gmail.com 2026-01-11 13:20:06 trying-something1 feebf6fa
+│  Update src/index.ts
+○  uqytmmxr thibaultleouay@gmail.com 2026-01-11 13:15:43 6caf8051
+│  this should be update by copilot
+◆  pvrmmsmk thibaultleouay@gmail.com 2026-01-10 20:58:00 main 72ec6c99
+│  more3: some small improvments (#26)
+~
+```
+
 Edit a commit in the middle of your stack:
 
 ```bash
@@ -111,10 +120,9 @@ The tool detects existing PRs and updates them instead of creating new ones.
 
 #### 6. Merge your stack
 
-Once reviews are complete, merge your PRs starting from the bottom of the stack:
+Once reviews are complete, merge all your pr and it's ancestor 
 
 ```bash
-❯ stacked merge -b trying-something1
 ❯ stacked merge -b trying-something2
 ```
 
@@ -179,7 +187,6 @@ On first run, stacked creates a `.stacked.toml` file in your repository root wit
 
 ```toml
 mainBranch = "main"
-branchPrefix = "username/pr-"
 draft = true
 ```
 
@@ -190,6 +197,14 @@ draft = true
 | `draft` | Create PRs as drafts | `true` |
 
 ## Usage
+
+### `stacked merge`
+
+Merge stacked PR 
+
+```bash
+stacked merge -b <bookmark-name>
+```
 
 ### `stacked push`
 
@@ -217,7 +232,7 @@ stacked push -b feature-auth -c abc123
 ```
 
 This command:
-1. Finds all commits in your stack (`mainBranch..@-`)
+1. Finds all commits in your stack (`mainBranch..@`)
 2. Creates a bookmark for each commit using the provided name
 3. Pushes each branch to the remote
 4. Creates a PR for each branch (if not already created)
