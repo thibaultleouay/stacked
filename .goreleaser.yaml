@@ -14,3 +14,22 @@ builds:
       - --allow-read
       - --allow-write
       - --allow-env
+
+homebrew_casks:
+  - name: stacked
+    binary: stacked
+    homepage: https://github.com/thibaultleouay/stacked
+    skip_upload: auto
+    description: "CLI tool for managing stacked pull requests with Jujutsu (jj)"
+    directory: Casks
+    repository:
+      owner: thibaultleouay
+      name: homebrew-stacked
+      branch: main
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    hooks:
+      post:
+        install: |
+          if system_command("/usr/bin/xattr", args: ["-h"]).exit_status == 0
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/stacked"]
+          end
